@@ -46,20 +46,24 @@ Manually labeling videos is a time-consuming process. Analysts must identify fra
 ### 📏 Detecting Measurement Tape in Frames
 
 The first step is to extract frames that correspond to each 20 cm mark in the videos. Below is an example of how these frames appear:  
-📷 *[Insert Image Here]*
+📷  
+![Alt text](images/image1.jpg)
 
 To achieve this, we trained a detection model to locate only the measuring tape in each image. Using Roboflow, we manually labeled around a hundred images:  
-📷 *[Insert Image Here]*
+📷  
+![Alt text](images/image2.PNG)
 
 We then exported our dataset in YOLO format and trained a YOLOv11 model. Thanks to the Ultralytics Python library, training the model was straightforward. The results were highly promising:  
-📷 *[Insert Image Here]*
+📷  
+![Alt text](images/image3.jpg)
 
 ### 🔢 Using OCR to Determine Distance
 
 Next, we extract the numerical distance from the measurement tapes. For each frame, we isolate the central part of the detected tape and apply Optical Character Recognition (OCR). Our goal is to detect the numbers 0, 20, 40, 60, or 80, which indicate the desired frame locations.
 
 We utilized the EasyOCR library, a powerful OCR tool in Python, particularly when using a GPU. The results were highly satisfactory:  
-📷 *[Insert Image Here]*
+📷  
+![Alt text](images/image4.jpg)
 
 ---
 
@@ -68,8 +72,8 @@ We utilized the EasyOCR library, a powerful OCR tool in Python, particularly whe
 ### 🏷 Manual Annotation of Coral Species
 
 A critical challenge was acquiring labeled coral images for training the detection model. Fortunately, we had access to a previously hand-labeled dataset from an old video, allowing us to bypass the tedious data-labeling process.
-
-📷 *[Insert Image Here]*
+📷  
+![Alt text](images/image5.jpg)
 
 ### 🤖 Training an AI Model for Automated Detection
 
@@ -78,10 +82,12 @@ To select the best model, we prioritized ease of use, pre-trained architectures 
 Both models were trained on our dataset and delivered promising results:
 
 🔹 **YOLOv11:**  
-📷 *[Insert Image Here]*
+📷  
+![Alt text](images/image6.jpg)
 
 🔹 **Detectron v2:**  
-📷 *[Insert Image Here]*
+📷  
+![Alt text](images/image7.jpg)
 
 To refine the accuracy of our models, additional training data is required, ensuring robust detection across all coral species.
 
@@ -94,7 +100,8 @@ To refine the accuracy of our models, additional training data is required, ensu
 With the pipeline completed, a few refinements remain. The next step is developing a **user interface** to enable analysts to interact seamlessly with the system. Analysts will still manually review a small percentage of frames (<5%) where AI detection is uncertain.
 
 For instance, when the measuring tape is unreadable, analysts will be prompted to manually locate the correct frame:  
-📷 *[Insert Image Here]*
+📷  
+![Alt text](images/image7.jpg)
 
 This hybrid approach significantly reduces manual workload while ensuring data reliability.
 
