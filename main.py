@@ -2,7 +2,7 @@ from ocr.process import main
 from ocr.ocr import Ocr
 from ocr.video import Video
 from tape_detection.tape_detector import TapeDetector
-from ocr.utils import get_lower_prediction, MAP_DIGIT, check_m
+from ocr.utils import get_lower_prediction, MAP_DIGIT, check_m, check_nb_frame
 import sys
 
 if __name__ == "__main__":
@@ -13,6 +13,9 @@ if __name__ == "__main__":
     end_idx = [i for i in range(len(sys.argv)) if sys.argv[i] == "-end"]
     end = int(sys.argv[end_idx[0]+1]) if end_idx else None
 
+    debug_idx = [i for i in range(len(sys.argv)) if sys.argv[i] == "-debug"]
+    debug = True if debug_idx else False
+
     main(
         ocr_builder=Ocr,
         video_builder=Video,
@@ -21,7 +24,9 @@ if __name__ == "__main__":
             "get_lower_prediction": get_lower_prediction,
             "map_digits": MAP_DIGIT,
             "check_m": check_m,
+            "check_nb_frame": check_nb_frame,
         },
         start=start,
         end=end,
+        debug=debug,
     )
