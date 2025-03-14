@@ -26,9 +26,17 @@ class Video:
     def save_img(self, img, path):
         cv2.imwrite(path, img)
 
+    def save_imgs(self, imgs, paths):
+        for img, path in zip(imgs, paths):
+            cv2.imwrite(path, img)
+
     def start_from(self, img_number):
         self.video.set(cv2.CAP_PROP_POS_FRAMES, img_number)
 
     def rotate_img(self, img, rotation):
         rotated_img = cv2.rotate(img, rotation)
         return rotated_img
+
+    def reset(self):
+        self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        self.current_frame = -1

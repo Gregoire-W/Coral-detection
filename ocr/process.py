@@ -1,6 +1,7 @@
 import cv2
 import shutil
 import os
+from tqdm import tqdm
 
 
 def main(
@@ -27,13 +28,11 @@ def main(
 
     detected_list = []
 
-    last_digit = ""
-    digit_backup = ""
+    last_digit = None
     last_digit_frame = None
+    last_confidence = None
     img = video.next_frame()
-    check_nb_frame = True
-    while img is not None and video.current_frame <= end:
-        print(f"current frame: {video.current_frame}")
+    for frame_number in tqdm(range(video.current_frame, end+1)):
         predictions = tape_detector.predict(img)
         bbox = utils["get_lower_prediction"](predictions)
         if bbox:
@@ -44,34 +43,75 @@ def main(
             crop_img = img[y_crop:y+mid_h, x-mid_w:x+w]
             crop_img = video.rotate_img(crop_img, cv2.ROTATE_90_CLOCKWISE)
             if debug:
-                video.save_img(crop_img, f"TEMP/debug/crop_{video.current_frame}.jpg")
-                video.save_img(img, f"TEMP/debug/{video.current_frame}.jpg")
+                video.save_img(crop_img, f"TEMP/debug/{video.current_frame}_crop.jpg")
 
-            detection = ocr.detect_element(crop_img, utils["map_digits"])
+            detection = ocr.detect_element(crop_img, utils["map_digits"], video.current_frame, debug=debug)
 
             if detection:
+                # If digit detected is m, add one more check
                 correct_m = utils["check_m"](detection[1]) if detection[0] == "m" else True
-                check_nb_frame, follow = utils["check_nb_frame"](detection[0], last_digit, last_digit_frame, video.current_frame)
-                print(f"correct_m: {correct_m} | check_nb_frame: {check_nb_frame} | follow: {follow}")
-                if correct_m and check_nb_frame and (follow or (not follow and detection[1][-1] > 0.35)):
-                    digit_backup = last_digit
-                    last_digit = detection[0]
-                    last_digit_frame = video.current_frame
-                    detected_list.append((detection[0], video.current_frame))
-                    p1 = int(detection[1][0][0][0]), int(detection[1][0][0][1])
-                    p2 = int(detection[1][0][2][0]), int(detection[1][0][2][1])
-                    crop_img = cv2.rectangle(crop_img, p1, p2, (255, 0, 0), thickness=2)
-                    video.save_img(crop_img, "TEMP/current/crop_img.jpg")
-                    # input(f"digit: {detection[0]} detected at frame: {video.current_frame}")
-            detection_backup = ocr.detect_element(crop_img, utils["map_backup"])
-            check = utils["backup_check"](detection_backup, digit_backup)
-            if check:
-                print("-----------------check-----------------")
-                detected_list.pop()
-                last_digit = detected_list[-1][0]
-                last_digit_frame = detected_list[-1][1]
-                digit_backup = "" if len(detected_list) > 0 else detected_list[-2][0]
+                if len(detected_list) > 0:
+                    last_digit = detected_list[-1][0]
+                    last_digit_frame = detected_list[-1][1]
+                    last_confidence = detected_list[-1][2]
+                digit_backup = None if len(detected_list) < 2 else detected_list[-2][0]
+                if correct_m:
+                    # If first digit, accept it
+                    if not detected_list:
+                        detected_list.append((detection[0], video.current_frame, detection[1][-1]))
+                        video.save_imgs([crop_img, crop_img], [f"./output/{video.current_frame}.jpg", f"./output/{video.current_frame}_crop.jpg"])
+                    # Get the best confidence of the current digit
+                    elif detection[0] == last_digit and detection[1][-1] > last_confidence:
+                        detected_list.pop()
+                        detected_list.append((detection[0], video.current_frame, detection[1][-1]))
+                        video.save_imgs([crop_img, crop_img], [f"./output/{video.current_frame}.jpg", f"./output/{video.current_frame}_crop.jpg"])
+                    # If we found the next digit, accept it
+                    elif last_digit and utils["last_digit"](detection[0]) == last_digit:
+                        detected_list.append((detection[0], video.current_frame, detection[1][-1]))
+                        video.save_imgs([crop_img, crop_img], [f"./output/{video.current_frame}.jpg", f"./output/{video.current_frame}_crop.jpg"])
+                    # If you think last digit wasnt good and you have better confidence here, replace it
+                    elif digit_backup and utils["last_digit"](detection[0]) == digit_backup:
+                        if detection[1][-1] > last_confidence:
+                            detected_list.pop()
+                            detected_list.append((detection[0], video.current_frame, detection[1][-1]))
+                            video.save_imgs([crop_img, crop_img], [f"./output/{video.current_frame}.jpg", f"./output/{video.current_frame}_crop.jpg"])
+                    # If we detect again the backup_digit with a better confidence than last digit, lets assume last digit is a mistake:
+                    elif digit_backup == detection[0] and detection[1][-1] > last_confidence:
+                        detected_list.pop()  # Delete the wrong digit
+                        detected_list.pop()  # Delete the backup digit to replace it with the new one
+                        detected_list.append((detection[0], video.current_frame, detection[1][-1]))
+                        video.save_imgs([crop_img, crop_img], [f"./output/{video.current_frame}.jpg", f"./output/{video.current_frame}_crop.jpg"])
+                    elif detection[0] != last_digit and utils["check_nb_frame"](detection[0], last_digit, video.current_frame, last_digit_frame):
+                        detected_list.append((detection[0], video.current_frame, detection[1][-1]))
+                        video.save_imgs([crop_img, crop_img], [f"./output/{video.current_frame}.jpg", f"./output/{video.current_frame}_crop.jpg"])
+
+                            #last_digit_frame = video.current_frame
+                # Check if you find next odd digit of the backup one
+                detection_backup = ocr.detect_element(crop_img, utils["map_backup"], video.current_frame)
+                if detection_backup and detection_backup[1][-1] > last_confidence:
+                    check = utils["backup_check"](detection_backup, digit_backup)
+                    if check:
+                        detected_list.pop()
 
         img = video.next_frame()
-    print(detected_list)
+        if img is None:
+            break
+    print([(elem[0], elem[1]) for elem in detected_list])
+
+    video.reset()
+    last = 0
+    last_digit = None
+    final_frames_path = os.listdir("./output")
+    for frame_path in final_frames_path:
+        frame = os.path.basename(frame_path).split(".")[0]
+        if frame not in [elem[1] for elem in detected_list]:
+            os.remove(frame_path)
+            os.remove(f"{frame}_crop.jpg")
+    for (digit, frame, conf) in detected_list:
+        print(frame - last)
+        for i in range(frame - last):
+            video.next_frame()
+        video.save_img(video.next_frame(), f"./output/{video.current_frame}.jpg")
+        last = video.current_frame
+
     video.exit()
