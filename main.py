@@ -2,7 +2,8 @@ from ocr.process import main
 from ocr.ocr import Ocr
 from ocr.video import Video
 from tape_detection.tape_detector import TapeDetector
-from ocr.utils import get_lower_prediction, MAP_DIGIT, check_m, check_nb_frame
+from ocr.utils import get_lower_prediction, MAP_DIGIT, check_m, check_nb_frame, MAP_BACKUP
+from ocr.utils import next_digit, last_digit, backup_check
 import sys
 
 if __name__ == "__main__":
@@ -25,6 +26,10 @@ if __name__ == "__main__":
             "map_digits": MAP_DIGIT,
             "check_m": check_m,
             "check_nb_frame": check_nb_frame,
+            "map_backup": MAP_BACKUP,
+            "backup_check": backup_check,
+            "next_digit": next_digit,
+            "last_digit": last_digit,
         },
         start=start,
         end=end,

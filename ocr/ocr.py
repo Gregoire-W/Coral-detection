@@ -1,4 +1,5 @@
 import easyocr
+import cv2
 
 
 class Ocr:
@@ -6,7 +7,12 @@ class Ocr:
     def __init__(self):
         self.reader = easyocr.Reader(['en'])
 
-    def detect_element(self, img, map_digits, threshold=0.3):
+    def detect_element(self, img, map_digits, threshold=0.15):
+        # Pre process img for ocr
+        #gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        #blurred = cv2.medianBlur(gray, 3)
+        #_, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        
         results = self.reader.readtext(img)
         print(rf"texts: {[result[1] for result in results]},conf:{[result[2] for result in results]}")
         results = [res for res in results if res[2] > threshold]
